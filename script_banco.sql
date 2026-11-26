@@ -6,8 +6,16 @@ CREATE TABLE membro (
     id_membro SERIAL PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     idade INT NOT NULL CHECK (idade > 0),
-    votos INT DEFAULT 0,
+    votos_eliminacao INT DEFAULT 0,
     aprovado BOOLEAN DEFAULT TRUE
+);
+
+-- Tabela para registrar quem votou em quem na eliminação
+CREATE TABLE voto_membro (
+    id_voto SERIAL PRIMARY KEY,
+    id_eleitor INT NOT NULL REFERENCES membro(id_membro) ON DELETE CASCADE,
+    id_votado INT NOT NULL REFERENCES membro(id_membro) ON DELETE CASCADE,
+    UNIQUE (id_eleitor) -- Cada membro vota apenas uma vez
 );
 
 CREATE TABLE cargo (
@@ -42,11 +50,19 @@ CREATE TABLE atividade (
 -- 2. INSERÇÃO DOS DADOS ATUALIZADOS (DML)
 -- ==========================================================
 
-INSERT INTO membro (nome, idade, votos, aprovado) VALUES
-('José', 19, 4, TRUE),
-('Winnicius', 19, 4, TRUE),
-('Celso', 20, 4, TRUE),
-('Marcus', 24, 1, FALSE);
+-- Membros (Marcus recebeu 3 votos de eliminação e fica com aprovado = FALSE)
+INSERT INTO membro (nome, idade, votos_eliminacao, aprovado) VALUES
+('José', 19, 0, TRUE),
+('Winnicius', 19, 0, TRUE),
+('Celso', 20, 1, TRUE),
+('Marcus', 24, 3, FALSE);
+
+-- Registro individual dos votos (José, Winnicius e Celso votaram no Marcus; Marcus votou no Celso)
+INSERT INTO voto_membro (id_eleitor, id_votado) VALUES
+(1, 4), -- José (1) votou em Marcus (4)
+(2, 4), -- Winnicius (2) votou em Marcus (4)
+(3, 4), -- Celso (3) votou em Marcus (4)
+(4, 3); -- Marcus (4) votou em Celso (3)
 
 INSERT INTO cargo (nome_cargo) VALUES
 ('Beta tester'),
@@ -98,6 +114,14 @@ INSERT INTO atividade (descricao, id_responsavel) VALUES
 -- ==========================================================
 -- 3. CONSULTAS E OPERAÇÕES PEDIDAS NA LOUSA
 -- ==========================================================
+
+-- Conferência da votação (quem votou em quem antes da remoção)
+SELECT 
+    e.nome AS eleitor,
+    v.nome AS votado_para_sair
+FROM voto_membro vm
+JOIN membro e ON vm.id_eleitor = e.id_membro
+JOIN membro v ON vm.id_votado = v.id_membro;
 
 -- 1) Lista de materiais e seus responsáveis
 SELECT 
